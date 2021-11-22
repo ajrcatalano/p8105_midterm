@@ -18,6 +18,21 @@ library(tidyverse)
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
+``` r
+library(magrittr)
+```
+
+    ## 
+    ## Attaching package: 'magrittr'
+
+    ## The following object is masked from 'package:purrr':
+    ## 
+    ##     set_names
+
+    ## The following object is masked from 'package:tidyr':
+    ## 
+    ##     extract
+
 ## Problem 1
 
 Import and clean the data. Format the data to use appropriate variable
@@ -193,8 +208,7 @@ exostosis_data |>
 
 ![](p8105_midterm_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
-Are the authors’ stated sample sizes in each age group consistent with
-the data you have available?
+The authors’ stated sample sizes do not agree with the available data.
 
 ``` r
 # Quoted from article: "Numbers of participants in each age group was: 18–30 n = 300, 31–40 n = 200, 41–50 n = 200, 51–60 n = 200 and >60 n = 300"
@@ -230,14 +244,75 @@ sample_comparison |>
 | 51-60     | 200 |        200 |
 | \>60      | 305 |        300 |
 
-Are the reported mean and standard deviations for FHP size consistent
-with the data you have available?
+Neither the mean nor the standard deviation for fhp size is consistent
+with the reported data for either gender.
+
+``` r
+# The mean FHP in the male cases examined was 28± 15 mm, while that for the female cases was 24± 11mm (P < 0.001).
+
+exostosis_data |> 
+  group_by(sex) |> 
+  summarize(
+    mean_fhp_size = mean(fhp_size_mm, na.rm = TRUE),
+    mean_fhp_size_sd = sd(fhp_size_mm, na.rm = TRUE)
+  ) |>
+  knitr::kable()
+```
+
+| sex    | mean_fhp_size | mean_fhp_size_sd |
+|:-------|--------------:|-----------------:|
+| Female |      23.72580 |         10.61789 |
+| Male   |      28.51234 |         14.66670 |
 
 The authors find “the prevalence of EEOP to be 33% of the study
 population”. What is the definition of EEOP, and what variables can you
 use to evaluate this claim? Is the finding consistent with the data
 available to you?
 
+``` r
+# Enlarged external occipital protuberance (EEOP) is defined as EOP > 10mm.
+
+exostosis_data |> 
+  summarize(
+    eeop_prevalence = sum(is.na(eop_size_mm)) / (sum(!is.na(eop_size_mm)) + sum(is.na(eop_size_mm)))
+  )
+```
+
+    ## # A tibble: 1 × 1
+    ##   eeop_prevalence
+    ##             <dbl>
+    ## 1           0.424
+
 FHP is noted to be more common in older subjects, with “FHP \>40 mm
 observed frequently (34.5%) in the over 60s cases”. Are the broad trends
 and specific values consistent with your data?
+
+``` r
+exostosis_data |> 
+  filter(age_group != 1,
+         fhp_size_mm > 40) |> 
+  group_by(age_group) |> 
+  ggplot(aes(x = age_group, y = fhp_size_mm, color = sex)) +
+  geom_point() +
+  facet_grid(. ~ sex)
+```
+
+![](p8105_midterm_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+``` r
+exostosis_data |> 
+  filter(age_group != 1) |> 
+  group_by(age_group) |> 
+  summarize(
+    "fhp_>40" = (100 * mean(fhp_size_mm > 40, na.rm = TRUE)),
+    ) |> 
+  knitr::kable()
+```
+
+| age_group | fhp\_\>40 |
+|:----------|----------:|
+| 18-30     |  6.666667 |
+| 31-40     |  5.911330 |
+| 41-50     |  8.695652 |
+| 51-60     | 11.055276 |
+| \>60      | 32.565790 |
